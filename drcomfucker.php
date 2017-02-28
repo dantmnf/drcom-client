@@ -12,8 +12,6 @@ require("message_builder.php");
 
 date_default_timezone_set("Asia/Shanghai");
 
-require("config.php");
-
 function logger(...$message) {
     $lines = explode("\n", sprintf(...$message));
     foreach($lines as $line)
