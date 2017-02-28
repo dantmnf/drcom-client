@@ -102,9 +102,9 @@ function build_login_message($config, $challenge) {
           .  str_pad($config->host_os, 128, "\x00");                   /*   byte szCSDVersion[128] */
     $data .=  $config->AUTH_VERSION;                                   /* byte ClientVerInfoAndInternetMode; byte DogVersion */
     
-	if($config->ror_version) {                                         /* struct LDAPAuth */
+    if($config->ror_version) {                                         /* struct LDAPAuth */
         $data = $data
-			  . "\x00"                                                 /*   byte code */
+              . "\x00"                                                 /*   byte code */
               .  chr(strlen($pwd));                                    /*   byte len */
         $data .= ror(md5("\x03\x01" . $challenge . $pwd, true), $pwd); /*   byte password[len] */
     }

@@ -365,7 +365,9 @@ if(function_exists("pcntl_signal")) {
         declare(ticks=1);
         function pcntl_signal_dispatch() {}
     }
-	pcntl_signal(SIGINT, "on_signal", true);
+    pcntl_signal(SIGINT, "on_signal", true);
+} else {
+    function pcntl_signal_dispatch() {}
 }
 
 
