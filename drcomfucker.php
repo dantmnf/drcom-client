@@ -68,7 +68,11 @@ class DrcomFucker {
                 logger("WARNING: failed to bind socket to interface");
             }
         }
-        socket_bind($this->socket, "0.0.0.0", 61440);
+        if(socket_bind($this->socket, $this->config->host_ip, 61440) === false) {
+            $errorcode = socket_last_error();
+            $errormsg = socket_strerror($errorcode);
+            throw new Exception("Couldn't bind socket: [$errorcode] $errormsg\n");
+        }
         socket_set_option($this->socket, SOL_SOCKET, SO_RCVTIMEO, array("sec"=>5,"usec"=>0));
     }
 
@@ -335,6 +339,7 @@ class DrcomFucker {
             } catch (Exception $e) {
                 logger("%s: %s", get_class($e), $e->getMessage());
                 logger("%s", $e->getTraceAsString());
+                logger("retry in 5s.");
                 sleep(5);
             }
         }
