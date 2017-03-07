@@ -148,16 +148,14 @@ class DrcomFucker {
             $this->logged_in = true;
 
             // empty buffer
-            if(defined('MSG_DONTWAIT')) {
-                $flag = constant('MSG_DONTWAIT');
-            } else {
-                logger("WARNING: non-blocking sockets unavailiable");
-                $flag = 0;
+            $r = [$this->socket];
+            $w = NULL;
+            $e = NULL;
+            $count = socket_select($r, $w, $e, 0);
+            if($count === 1) {
+                socket_recvfrom($this->socket, $fuckingbuffer, 65536, 0, $fuckedhost, $fuckedport);
             }
-            do {
-                $len = @socket_recvfrom($this->socket, $fuckingbuffer, 8192, $flag, $fuckedhost, $fuckedport);
-            } while($len !== false);
-
+            
             $this->restart_keepalive();
 
         } else if ($message[0] == "\x05") {
