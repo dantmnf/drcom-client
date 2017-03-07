@@ -27,13 +27,14 @@ $config->ror_version = true;
 $config->iface = "";
 
 $config->iface = "Ethernet";
-echo("getting network configuration with powershell\n");
-exec("powershell -ExecutionPolicy Unrestricted -File .\getconf.ps1 \"$config->iface\"", $addrs, $exitcode);
+logger("getting network configuration with powershell");
+exec("powershell -ExecutionPolicy Unrestricted -File " . dirname(__FILE__) . "\getconf.ps1 \"$config->iface\"", $addrs, $exitcode);
 
 if($exitcode === 0) {
     $config->host_ip = $addrs[0];
     $config->dhcp_server = $addrs[1];
     $config->PRIMARY_DNS = $addrs[2];
 } else {
-    die("failed to get network configuration\n");
+    logger("failed to get network configuration\n");
+    exit(1);
 }
