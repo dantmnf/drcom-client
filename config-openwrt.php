@@ -30,7 +30,7 @@ $config->iface = "";
 $openwrt_iface = "wan"; // !!! not Linux interface name
 
 
-echo("getting network configuration from OpenWrt\n");
+logger("getting network configuration from OpenWrt\n");
 $fd = popen("ifstatus \"$openwrt_iface\"", "r");
 $json = '';
 do {
@@ -39,7 +39,8 @@ do {
 pclose($fd);
 
 if(!function_exists("json_decode")) {
-    die("ERROR: json extension is required\n");
+    logger("ERROR: json extension is required\n");
+    exit(1);
 }
 
 $jdoc = json_decode($json);
@@ -49,5 +50,6 @@ if($jdoc->up) {
     $config->PRIMARY_DNS = $jdoc->{'dns-server'}[0];
     $config->iface = $jdoc->device;
 } else {
-    die("failed to get network configuration\n");
+    logger("failed to get network configuration\n");
+    exit(1);
 }
