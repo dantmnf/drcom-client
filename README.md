@@ -1,5 +1,6 @@
 # drcom-client
-for DHCP variant
+for Dr.COM variant
+![about](https://user-images.githubusercontent.com/2252500/30239658-3e20747e-9594-11e7-8a97-5227050bfedd.png)
 
 ## Why This
 - It runs/starts faster than [Python version](https://github.com/drcoms/drcom-generic) on OpenWrt (→_→) ~~（又不是不能用~~
