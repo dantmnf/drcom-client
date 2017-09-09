@@ -28,6 +28,16 @@ if(getenv('DRCOMFUCKER_DEBUG')) {
     function trace(...$message) {}
 }
 
+if(getenv('DRCOMFUCKER_DUMPTRAFFIC')) {
+    function dump_traffic($direction, $message) {
+        fwrite(STDERR, strftime("[DUMP %T] ", time()) . "$direction " . bin2hex($message) . "\n");
+    }
+} else {
+    function dump_traffic($direction, $message) {}
+}
+
+class RetryException extends Exception {}
+
 class DrcomFucker {
 
     private $state = "new";
@@ -35,6 +45,7 @@ class DrcomFucker {
     private $session_cookie = null;
     private $keepalive_cookie = null;
     private $keepalive_counter = 0;
+    private $keepalive_timeout_count = 0;
     
     private $server;
     private $socket;
@@ -49,6 +60,7 @@ class DrcomFucker {
     }
 
     function send($data) {
+        dump_traffic("sendto $this->server:61440", $data);
         socket_sendto($this->socket, $data, strlen($data), 0, $this->server, 61440);
     }
 
@@ -85,7 +97,9 @@ class DrcomFucker {
             foreach($targets as $target) {
                 logger("trying $target");
                 socket_sendto($this->socket, $message, strlen($message), 0, $target, 61440);
+                dump_traffic("sendto $target:61440", $message);
                 if(@socket_recvfrom($this->socket, $recvdata, 4096, 0, $srcaddr, $srcport) !== false) {
+                    dump_traffic("recvfrom $srcaddr:$srcport", $message);
                     $this->server = $srcaddr;
                     logger("found server $this->server");
                     break;
@@ -100,17 +114,24 @@ class DrcomFucker {
         while($this->state !== "stop") {
             $len = @socket_recvfrom($this->socket, $recvdata, 4096, 0, $from, $srcport);
             pcntl_signal_dispatch();
+            // state may be changed by signal handler
+            if($this->state === "stop") break;
             if($len === false) {
                 // error
                 if($this->logged_in) {
                     logger("keepalive timed out");
-                    $this->restart_keepalive();
-                } else if($this->state === "stop") {
-                    continue;
+                    $this->keepalive_timeout_count++;
+                    if($this->keepalive_timeout_count < 3) {
+                        $this->restart_keepalive();
+                    } else {
+                        throw new RetryException("too many keepalive timeouts");
+                    }
                 } else {
-                    throw new Exception("timed out");
+                    throw new RetryException("timed out");
                 }
-            } else if($from === $this->server && $srcport === 61440) {
+            } 
+            dump_traffic("recvfrom $from:$srcport", $recvdata);
+            if($from === $this->server && $srcport === 61440) {
                 $funcname = "on_message_" . $this->state;
                 if(method_exists($this, $funcname)) {
                     $this->$funcname($recvdata);
@@ -154,14 +175,15 @@ class DrcomFucker {
             $count = socket_select($r, $w, $e, 0);
             if($count === 1) {
                 socket_recvfrom($this->socket, $fuckingbuffer, 65536, 0, $fuckedhost, $fuckedport);
+                dump_traffic("recvfrom $fuckedhost:$fuckedport", $fuckingbuffer);
             }
             
             $this->restart_keepalive();
 
         } else if ($message[0] == "\x05") {
             $this->state = "login_response_received";
-            logger("login failed");
             $this->on_login_error($message);
+            throw new RetryException("login failed");
         } else {
             logger("received unexpected data on $this->state");
         }
@@ -206,12 +228,13 @@ class DrcomFucker {
             }
         }
         $desc = mb_convert_encoding($desc, "UTF-8", "GBK, UTF-8");
-        logger("[ERROR 0x%02X] %s", $code, $desc);
+        logger("[ERROR 0x%02X] server sent message: %s", $code, $desc);
     }
 
     function restart_keepalive() {
         logger("starting keep alive");
         $this->keepalive_counter = 0;
+        $this->keepalive_timeout_count = 0;
         $this->send(build_keepalive_message_type1($this->config, $this->challenge_salt, $this->session_cookie));
         $this->state = "keepalive_p1";
     }
@@ -334,6 +357,10 @@ class DrcomFucker {
                 $this->state = "login_challenge_sent";
                 $this->message_loop();
                 break;
+            } catch (RetryException $e) {
+                logger("%s", $e->getMessage());
+                logger("retry in 5s.");
+                sleep(5);
             } catch (Exception $e) {
                 logger("%s: %s", get_class($e), $e->getMessage());
                 logger("%s", $e->getTraceAsString());
@@ -362,6 +389,7 @@ function on_signal($sig, $siginfo=null) {
 }
 
 if(function_exists("pcntl_signal")) {
+    logger("Ctrl-C to logout");
     if(!function_exists("pcntl_signal_dispatch")) {
         declare(ticks=1);
         function pcntl_signal_dispatch() {}
