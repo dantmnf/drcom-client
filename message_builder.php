@@ -114,9 +114,8 @@ function build_login_message($config, $challenge) {
     $data .= $sum4;                                                    /*   uint32le checksum */
     $data .= "\x00\x00";                                               /*   uint16 options */
     $data .= $mac;                                                     /*   byte mac[6] */
-    $data .= "\x00"                                                    /* byte autoLogout */
-          .  "\x00"                                                    /* byte broadcastMode */
-          .  "\xe9\x13";                                               /* uint16 unknown */
+    $data .= "\x01"                                                    /* byte autoLogout */
+          .  "\x01";                                                   /* byte broadcastMode */
     return $data;
 
 }

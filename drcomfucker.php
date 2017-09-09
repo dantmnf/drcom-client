@@ -381,27 +381,9 @@ class DrcomFucker {
     }
 }
 
-
-function on_signal($sig, $siginfo=null) {
-    global $fucker;
-    pcntl_signal(SIGINT, SIG_DFL);
-    $fucker->unfuck();
-}
-
-if(function_exists("pcntl_signal")) {
-    logger("Ctrl-C to logout");
-    if(!function_exists("pcntl_signal_dispatch")) {
-        declare(ticks=1);
-        function pcntl_signal_dispatch() {}
-    }
-    pcntl_signal(SIGINT, "on_signal", true);
-} else {
-    function pcntl_signal_dispatch() {}
-}
-
-
-$opts = getopt("c::h", ["config::", "help"]);
-if(array_key_exists("h", $opts) || array_key_exists("help", $opts)) {
+(function() {
+    $opts = getopt("c::h", ["config::", "help"]);
+    if(array_key_exists("h", $opts) || array_key_exists("help", $opts)) {
 ?>usage: drcomfucker.php [OPTIONS]
 Options:
   -c, --config=config.php               use config file config.php (default)
@@ -411,16 +393,42 @@ Useful environment variables:
   DRCOMFUCKER_DEBUG=1                   show state on received message
   DRCOMFUCKER_DUMPTRAFFIC=1             dump UDP traffic
 <?php
-    exit(0);
-}
-if(array_key_exists("c", $opts)) {
-    $configfile = $opts["c"];
-} else if(array_key_exists("config", $opts)) {
-    $configfile = $opts["config"];
-} else {
-    $configfile = "config.php";
-}
-require($configfile);
+        exit(0);
+    }
+    if(array_key_exists("c", $opts)) {
+        $configfile = $opts["c"];
+    } else if(array_key_exists("config", $opts)) {
+        $configfile = $opts["config"];
+    } else {
+        $configfile = "config.php";
+    }
+    require($configfile);
 
-$fucker = new DrcomFucker($config);
-$fucker->fuck();
+    if(!function_exists("drcomfucker_get_config")) {
+        logger("function drcomfucker_get_config() not defined");
+        logger("define it in config file");
+        exit(1);
+    }
+
+    $config = drcomfucker_get_config();
+
+    $fucker = new DrcomFucker($config);
+
+    if(function_exists("pcntl_signal")) {
+        logger("press Ctrl-C to logout");
+        if(!function_exists("pcntl_signal_dispatch")) {
+            declare(ticks=1);
+            function pcntl_signal_dispatch() {}
+        }
+        $on_signal = function ($sig, $siginfo=null) {
+            logger("received SIGINT");
+            pcntl_signal(SIGINT, SIG_DFL);
+            $fucker->unfuck();
+        };
+        pcntl_signal(SIGINT, $on_signal, true);
+    } else {
+        function pcntl_signal_dispatch() {}
+    }
+
+    $fucker->fuck();
+})();
