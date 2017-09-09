@@ -27,9 +27,9 @@ function drcomfucker_get_config() {
 
     $config->host_name = "Sprite";
     $config->host_os = "DrCOM\x00\xbd\x00\x2a\x00" .
-                    str_repeat("\x00", 54) .
-                    "e8fdd1bbb9c96f285be0e883b482db8faeb69af0" .
-                    str_repeat("\x00", 24);
+                        str_repeat("\x00", 54) .
+                        "e8fdd1bbb9c96f285be0e883b482db8faeb69af0" .
+                        str_repeat("\x00", 24);
 
     logger("getting network configuration with WMI");
 

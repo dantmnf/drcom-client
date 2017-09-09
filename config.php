@@ -17,9 +17,12 @@ function drcomfucker_get_config() {
     $config->PRIMARY_DNS = "0.0.0.0";
     // use auth server if not set
     $config->dhcp_server = "";
-    $config->AUTH_VERSION = "\x2a\x00";
+    $config->AUTH_VERSION = "\x2d\x00";
     $config->mac = hex2bin("000000000000");
-    $config->host_os = "2.6.32";
+    $config->host_os = "DrCOM\x00\xbd\x00\x2a\x00" .
+                    str_repeat("\x00", 54) .
+                    "e8fdd1bbb9c96f285be0e883b482db8faeb69af0" .
+                    str_repeat("\x00", 24);
     $config->KEEP_ALIVE_VERSION = "\xd8\x02";
     $config->ror_version = true;
 
