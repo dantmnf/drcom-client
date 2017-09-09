@@ -11,7 +11,7 @@ function drcomfucker_get_config() {
     $uci_interface = "wan";
 
     // will send challenge to 202.1.1.1, 1.1.1.1, 192.168.255.251 if not set
-    // not guranteed availiable (especially on multihome system)
+    // not guranteed availiable
     $config->server = "";
     $config->CONTROLCHECKSTATUS = "\x20";
     $config->ADAPTERNUM = "\x01";

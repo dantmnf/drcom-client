@@ -9,7 +9,7 @@ function drcomfucker_get_config() {
     $config->iface = "Ethernet1";
 
     // will send challenge to 202.1.1.1, 1.1.1.1, 192.168.255.251 if not set
-    // not guranteed availiable (especially on multihome system)
+    // not guranteed availiable
     $config->server = "";
     $config->CONTROLCHECKSTATUS = "\x20";
     $config->ADAPTERNUM = "\x01";
@@ -18,7 +18,6 @@ function drcomfucker_get_config() {
     $config->KEEP_ALIVE_VERSION = "\xd8\x02";
     $config->ror_version = true;
 
-    // socket will bind to host_ip
     $config->host_ip = "";
     $config->PRIMARY_DNS = "0.0.0.0";
     // use auth server if not set

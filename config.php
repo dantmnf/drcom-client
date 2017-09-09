@@ -4,7 +4,7 @@ function drcomfucker_get_config() {
     $config = new stdClass;
 
     // will send challenge to 202.1.1.1, 1.1.1.1, 192.168.255.251 if not set
-    // not guranteed availiable (especially on multihome system)
+    // not guranteed availiable
     $config->server = "";
     $config->username="drcomfucker";
     $config->password="114514";
@@ -23,7 +23,7 @@ function drcomfucker_get_config() {
     $config->KEEP_ALIVE_VERSION = "\xd8\x02";
     $config->ror_version = true;
 
-    // will bind to specified interface if set
+    // will bind to specified interface if set and OS supported
     $config->iface = "";
 
     return $config;
