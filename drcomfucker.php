@@ -406,6 +406,10 @@ if(array_key_exists("h", $opts) || array_key_exists("help", $opts)) {
 Options:
   -c, --config=config.php               use config file config.php (default)
   -h, --help                            show this message and exit
+
+Useful environment variables:
+  DRCOMFUCKER_DEBUG=1                   show state on received message
+  DRCOMFUCKER_DUMPTRAFFIC=1             dump UDP traffic
 <?php
     exit(0);
 }
