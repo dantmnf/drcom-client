@@ -362,10 +362,8 @@ class DrcomFucker {
                 logger("retry in 5s.");
                 sleep(5);
             } catch (Exception $e) {
-                logger("%s: %s", get_class($e), $e->getMessage());
+                logger("%s", $e->getMessage());
                 logger("%s", $e->getTraceAsString());
-                logger("retry in 5s.");
-                sleep(5);
             }
         }
     }
