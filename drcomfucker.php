@@ -347,7 +347,7 @@ class DrcomFucker {
 
     public function fuck() {
         if($this->config->host_ip === "") {
-            die("host_ip not set\n");
+            throw new Exception("host_ip not set");
         }
         $this->init_socket();
         $this->find_server();
@@ -358,23 +358,24 @@ class DrcomFucker {
                 $this->message_loop();
                 break;
             } catch (RetryException $e) {
-                logger("%s", $e->getMessage());
+                logger("Exception: %s", $e->getMessage());
                 logger("retry in 5s.");
                 sleep(5);
             } catch (Exception $e) {
-                logger("%s", $e->getMessage());
+                logger("Exception: %s", $e->getMessage());
                 logger("%s", $e->getTraceAsString());
+                logger("stopping");
             }
         }
     }
 
     public function unfuck() {
         logger("unfuck in $this->state");
-        if(!$this->logged_in) {
-            $this->state = "stop";
-        } else {
+        if($this->logged_in) {
             $this->send_challenge();
             $this->state = "logout_challenge_sent";
+        } else {
+            $this->state = "stop";
         }
     }
 }
