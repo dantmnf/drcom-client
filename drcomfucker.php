@@ -76,11 +76,16 @@ class DrcomFucker {
         if(defined("SO_BINDTODEVICE") && $this->config->iface !== "") {
             $iface = $this->config->iface;
             trace("bind to interface $iface");
-            if(@socket_set_option($this->socket, SOL_SOCKET, SO_BINDTODEVICE, $iface) === false) {
+            if(@socket_set_option($this->socket, SOL_SOCKET, SO_BINDTODEVICE, $iface) !== false) {
+                logger("bind to interface $iface");
+            } else {
                 logger("WARNING: failed to bind socket to interface");
             }
         }
-        if(socket_bind($this->socket, $this->config->host_ip, 61440) === false) {
+        if(socket_bind($this->socket, $this->config->host_ip, 61440) !== false) {
+            $ip = $this->config->host_ip;
+            logger("bind to address $ip");
+        } else {
             $errorcode = socket_last_error();
             $errormsg = socket_strerror($errorcode);
             throw new Exception("Couldn't bind socket: [$errorcode] $errormsg\n");
@@ -98,12 +103,15 @@ class DrcomFucker {
                 logger("trying $target");
                 socket_sendto($this->socket, $message, strlen($message), 0, $target, 61440);
                 dump_traffic("sendto $target:61440", $message);
-                if(@socket_recvfrom($this->socket, $recvdata, 4096, 0, $srcaddr, $srcport) !== false) {
+                $result = @socket_recvfrom($this->socket, $recvdata, 4096, 0, $srcaddr, $srcport);
+                pcntl_signal_dispatch();
+                if($result !== false) {
                     dump_traffic("recvfrom $srcaddr:$srcport", $message);
                     $this->server = $srcaddr;
                     logger("found server $this->server");
                     break;
-                } else if($this->state === "stop") {
+                }
+                if($this->state === "stop") {
                     break;
                 }
             }
@@ -350,10 +358,18 @@ class DrcomFucker {
 
     public function fuck() {
         if($this->config->host_ip === "") {
-            throw new Exception("host_ip not set");
+            logger("host_ip not set");
+            return;
         }
         $this->init_socket();
         $this->find_server();
+        if($this->state === "stop") {
+            return;
+        }
+        if($this->server === "") {
+            logger("unable to find server");
+            return;
+        }
         while($this->state !== "stop") {
             try {
                 $this->send_challenge();
@@ -430,7 +446,7 @@ Useful environment variables:
             pcntl_signal(SIGINT, SIG_DFL);
             $fucker->unfuck();
         };
-        pcntl_signal(SIGINT, $on_signal, true);
+        pcntl_signal(SIGINT, $on_signal, false);
     } else {
         function pcntl_signal_dispatch() {}
     }
