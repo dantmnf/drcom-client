@@ -13,7 +13,7 @@ require("message_builder.php");
 date_default_timezone_set("Asia/Shanghai");
 
 function logger(...$message) {
-    $lines = explode("\n", sprintf(...$message));
+    $lines = explode("\n", count($message) <= 1 ? $message[0] : sprintf(...$message));
     foreach($lines as $line)
         echo strftime("[%T] ", time()), $line, "\n";
 }
@@ -102,6 +102,8 @@ class DrcomFucker {
                     dump_traffic("recvfrom $srcaddr:$srcport", $message);
                     $this->server = $srcaddr;
                     logger("found server $this->server");
+                    break;
+                } else if($this->state === "stop") {
                     break;
                 }
             }
@@ -250,7 +252,7 @@ class DrcomFucker {
             $this->state = "keepalive_p2";
         } else {
             logger("received unexpected data on $this->state");
-            restart_keepalive();
+            $this->restart_keepalive();
         }
     }
 
@@ -297,6 +299,7 @@ class DrcomFucker {
             // received type2(3, false)
             $this->keepalive_cookie = substr($message, 16, 4);
             // most likely to get SIGINT here, signal handler will change state
+            trace("sleep 20");
             sleep(20);
             pcntl_signal_dispatch();
             if($this->state === "keepalive_p4") {
@@ -351,7 +354,7 @@ class DrcomFucker {
         }
         $this->init_socket();
         $this->find_server();
-        for(;;) {
+        while($this->state !== "stop") {
             try {
                 $this->send_challenge();
                 $this->state = "login_challenge_sent";
@@ -380,7 +383,8 @@ class DrcomFucker {
     }
 }
 
-(function() {
+function main() {
+    global $fucker;
     $opts = getopt("c::h", ["config::", "help"]);
     if(array_key_exists("h", $opts) || array_key_exists("help", $opts)) {
 ?>usage: drcomfucker.php [OPTIONS]
@@ -420,6 +424,8 @@ Useful environment variables:
             function pcntl_signal_dispatch() {}
         }
         $on_signal = function ($sig, $siginfo=null) {
+            global $fucker;
+            printf("\n");
             logger("received SIGINT");
             pcntl_signal(SIGINT, SIG_DFL);
             $fucker->unfuck();
@@ -430,4 +436,6 @@ Useful environment variables:
     }
 
     $fucker->fuck();
-})();
+}
+
+main();
