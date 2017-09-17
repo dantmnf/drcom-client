@@ -11,7 +11,7 @@ for Dr.COM variant
 PHP modules/extensions:
 - sockets
 - json (for getting interface information on OpenWrt)
-- simplexml (for getting interface information on Windows)
+- com_dotnet (for getting interface information on Windows)
 - mbstring (for displaying server-sent messages)
 - pcntl (for Ctrl-C to logout)
 

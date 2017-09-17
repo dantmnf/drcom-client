@@ -33,32 +33,34 @@ function drcomfucker_get_config() {
 
     logger("getting network configuration with WMI");
 
-    $query = shell_exec('wmic path Win32_NetworkAdapter get Index,NetConnectionID,MACAddress /format:rawxml');
-    $sx = simplexml_load_string($query);
-    $ncindex = NULL;
-    $mac = NULL;
-    foreach($sx->xpath('RESULTS/CIM/INSTANCE') as $inst) {
-        $ncid = $inst->xpath('PROPERTY[@NAME="NetConnectionID"]/VALUE');
-        if(count($ncid) === 0) continue;
-        $ncid = (string)$ncid[0];
-        if($ncid === $config->iface) {
-            $ncindex = (string)$inst->xpath('PROPERTY[@NAME="Index"]/VALUE')[0];
-            $mac = (string)$inst->xpath('PROPERTY[@NAME="MACAddress"]/VALUE')[0];
-            break;
-        }
-    }
+    $wbemLocator = new COM("WbemScripting.SWbemLocator");
+    $wbemServices = $wbemLocator->ConnectServer(".", 'root\cimv2');
 
-    if($ncindex === NULL || $mac === NULL) {
-        logger("can't find interface {$config->iface}\n");
+    $escapedname = addslashes($config->iface);
+    $nics = $wbemServices->ExecQuery("select Index,MACAddress from Win32_NetworkAdapter where NetConnectionID='$escapedname'");
+    if ($nics->Count !== 1) {
+        logger("can't find unique interface $config->iface\n");
         exit(1);
     }
-    logger('found interface %s with ID %s, MAC %s', $config->iface, $ncindex, $mac);
+    $nicindex = $nics->ItemIndex(0)->Properties_->Item("Index")->Value;
+    $mac = $nics->ItemIndex(0)->Properties_->Item("MACAddress")->Value;
+    logger('found interface %s with ID %s, MAC %s', $config->iface, $nicindex, $mac);
+    $nics = null;
 
-    $query = shell_exec("wmic path Win32_NetworkAdapterConfiguration where \"Index=$ncindex\" get IPAddress,DHCPServer,DNSServerSearchOrder /format:rawxml");
-    $sx = simplexml_load_string($query);
-    $tostring = function ($x) { return (string)$x; };
-    $ipaddrs = array_map($tostring, $sx->xpath('RESULTS/CIM/INSTANCE/PROPERTY.ARRAY[@NAME="IPAddress"]/VALUE.ARRAY/VALUE'));
-    $dnsservers = array_map($tostring, $sx->xpath('RESULTS/CIM/INSTANCE/PROPERTY.ARRAY[@NAME="DNSServerSearchOrder"]/VALUE.ARRAY/VALUE'));
+    $safearray = function ($x) {
+        $result = [];
+        if ($x === null || variant_get_type($x) & VT_ARRAY !== VT_ARRAY) {
+            return $result;
+        }
+        foreach ($x as $key => $value) {
+            $result[$key] = $value;
+        }
+        return $result;
+    };
+
+    $niccfg = $wbemServices->ExecQuery("select IPAddress,DHCPServer,DNSServerSearchOrder from Win32_NetworkAdapterConfiguration where Index=$nicindex");
+    $ipaddrs = $safearray($niccfg->ItemIndex(0)->Properties_->Item("IPAddress")->Value);
+    $dnsservers = $safearray($niccfg->ItemIndex(0)->Properties_->Item("DNSServerSearchOrder")->Value);
     $fltrv4 = function($x) { return strpos($x, ':') === false; };
     $v4addrs = array_filter($ipaddrs, $fltrv4);
     $v4dnsservers = array_filter($dnsservers, $fltrv4);
@@ -69,9 +71,14 @@ function drcomfucker_get_config() {
     }
 
     $config->host_ip = $v4addrs[0];
-    $config->dhcp_server = (string)($sx->xpath('RESULTS/CIM/INSTANCE/PROPERTY[@NAME="DHCPServer"]/VALUE') ? : [""])[0];
-    $config->PRIMARY_DNS = count($v4dnsservers) ? $v4dnsservers[0] : '0.0.0.0';
+    $config->dhcp_server = (string)($niccfg->ItemIndex(0)->Properties_->Item("DHCPServer")->Value);
+    $config->PRIMARY_DNS = count($v4dnsservers) !== 0 ? $v4dnsservers[0] : '0.0.0.0';
     $config->mac = hex2bin(str_replace(':', '', $mac));
     logger('using host_ip %s, dhcp_server %s, PRIMARY_DNS %s', $config->host_ip, $config->dhcp_server ? : "[auto]", $config->PRIMARY_DNS);
+
+    $niccfg = null;
+    $wbemServices = null;
+    $wbemLocator = null;
+
     return $config;
 }
