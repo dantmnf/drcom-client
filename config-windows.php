@@ -75,7 +75,9 @@ function drcomfucker_get_config() {
     $config->PRIMARY_DNS = count($v4dnsservers) !== 0 ? $v4dnsservers[0] : '0.0.0.0';
     $config->mac = hex2bin(str_replace(':', '', $mac));
     logger('using host_ip %s, dhcp_server %s, PRIMARY_DNS %s', $config->host_ip, $config->dhcp_server ? : "[auto]", $config->PRIMARY_DNS);
-
+    
+    $ipaddrs = null;
+    $dnsservers = null;
     $niccfg = null;
     $wbemServices = null;
     $wbemLocator = null;
