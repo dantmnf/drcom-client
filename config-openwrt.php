@@ -36,36 +36,36 @@ function drcomfucker_get_config() {
                         "e8fdd1bbb9c96f285be0e883b482db8faeb69af0" .
                         str_repeat("\x00", 24);
 
-    logger("getting network configuration from OpenWrt");
+    logger2("DEBUG", "getting network configuration from OpenWrt");
 
     $json = shell_exec("ifstatus $uci_interface");
     $ifstatus = json_decode($json);
 
     if($ifstatus === NULL) {
-        logger("JSON decode failed");
+        logger2("FATAL", "JSON decode failed");
         exit(1);
     }
 
     if(property_exists($ifstatus, "device") !== TRUE) {
-        logger("UCI interface $uci_interface has no associated Linux interface");
+        logger2("FATAL", "UCI interface $uci_interface has no associated Linux interface");
         exit(1);
     }
 
     if($ifstatus->up !== TRUE) {
-        logger("interface $uci_interface is down");
+        logger2("FATAL", "interface $uci_interface is down");
         exit(1);
     }
 
     $config->iface = $ifstatus->device;
     $mac = trim(file_get_contents("/sys/class/net/$config->iface/address"));
 
-    logger('found interface %s with MAC %s', $config->iface, $mac);
+    logger2("DEBUG", 'found interface %s with MAC %s', $config->iface, $mac);
 
     $config->host_ip = $ifstatus->{'ipv4-address'}[0]->address;
     $config->PRIMARY_DNS = $ifstatus->{'dns-server'}[0];
     $config->mac = hex2bin(str_replace(':', '', $mac));
 
-    logger('using host_ip %s, PRIMARY_DNS %s', $config->host_ip, $config->PRIMARY_DNS);
+    logger2("DEBUG", 'using host_ip %s, PRIMARY_DNS %s', $config->host_ip, $config->PRIMARY_DNS);
 
     return $config;
 }

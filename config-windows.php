@@ -31,7 +31,7 @@ function drcomfucker_get_config() {
                         "e8fdd1bbb9c96f285be0e883b482db8faeb69af0" .
                         str_repeat("\x00", 24);
 
-    logger("getting network configuration with WMI");
+    logger2("DEBUG", "getting network configuration with WMI");
 
     $wbemLocator = new COM("WbemScripting.SWbemLocator");
     $wbemServices = $wbemLocator->ConnectServer(".", 'root\cimv2');
@@ -39,12 +39,12 @@ function drcomfucker_get_config() {
     $escapedname = addslashes($config->iface);
     $nics = $wbemServices->ExecQuery("select Index,MACAddress from Win32_NetworkAdapter where NetConnectionID='$escapedname'");
     if ($nics->Count !== 1) {
-        logger("can't find unique interface $config->iface\n");
+        logger2("FATAL", "can't find unique interface $config->iface\n");
         exit(1);
     }
     $nicindex = $nics->ItemIndex(0)->Properties_->Item("Index")->Value;
     $mac = $nics->ItemIndex(0)->Properties_->Item("MACAddress")->Value;
-    logger('found interface %s with ID %s, MAC %s', $config->iface, $nicindex, $mac);
+    logger2("DEBUG", 'found interface %s with ID %s, MAC %s', $config->iface, $nicindex, $mac);
     $nics = null;
 
     $safearray = function ($x) {
@@ -66,7 +66,7 @@ function drcomfucker_get_config() {
     $v4dnsservers = array_filter($dnsservers, $fltrv4);
 
     if(count($v4addrs)!==1) {
-        logger("can't find unique IPv4 address on interface {$config->iface}");
+        logger2("FATAL", "can't find unique IPv4 address on interface {$config->iface}");
         exit(1);
     }
 
@@ -74,7 +74,7 @@ function drcomfucker_get_config() {
     $config->dhcp_server = (string)($niccfg->ItemIndex(0)->Properties_->Item("DHCPServer")->Value);
     $config->PRIMARY_DNS = count($v4dnsservers) !== 0 ? $v4dnsservers[0] : '0.0.0.0';
     $config->mac = hex2bin(str_replace(':', '', $mac));
-    logger('using host_ip %s, dhcp_server %s, PRIMARY_DNS %s', $config->host_ip, $config->dhcp_server ? : "[auto]", $config->PRIMARY_DNS);
+    logger2("DEBUG", 'using host_ip %s, dhcp_server %s, PRIMARY_DNS %s', $config->host_ip, $config->dhcp_server ? : "[auto]", $config->PRIMARY_DNS);
     
     $ipaddrs = null;
     $dnsservers = null;
