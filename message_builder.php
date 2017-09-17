@@ -114,8 +114,13 @@ function build_login_message($config, $challenge) {
     $data .= $sum4;                                                    /*   uint32le checksum */
     $data .= "\x00\x00";                                               /*   uint16 options */
     $data .= $mac;                                                     /*   byte mac[6] */
-    $data .= "\x01"                                                    /* byte autoLogout */
-          .  "\x01";                                                   /* byte broadcastMode */
+    if ($config->ror_version) {
+        $data .= str_repeat("\x00", 8-strlen($pwd));
+        if (strlen($pwd) % 2 !== 0) $data .= "\x00";
+    } else {
+        $data .= "\x01"                                                /* byte autoLogout */
+              .  "\x01";                                               /* byte broadcastMode */
+    }
     return $data;
 
 }
